@@ -31,24 +31,28 @@ public class PutCommand implements IWalleCommand{
     public void parse() {
         final File inputFile = files.get(0);
         File outputFile = null;
+        String realChannel = channel;
         if (files.size() == 2) {
             outputFile = files.get(1);
         } else {
             final String name = FilenameUtils.getBaseName(inputFile.getName());
             final String extension = FilenameUtils.getExtension(inputFile.getName());
-            final String newName = name + "_" + channel + "." + extension;
+            String[] split = channel.split("#");
+            realChannel = split[0].trim();
+            final String alias = split.length > 1 ? split[1].trim() : null;
+            final String newName = name + (alias == null || alias.isEmpty() ? "" : "_" + alias) + "_" + realChannel + "." + extension;
             outputFile = new File(inputFile.getParent(), newName);
         }
         if (inputFile.equals(outputFile)) {
             try {
-                ChannelWriter.put(outputFile, channel, extraInfo);
+                ChannelWriter.put(outputFile, realChannel, extraInfo);
             } catch (IOException | SignatureNotFoundException e) {
                 e.printStackTrace();
             }
         } else {
             try {
                 FileUtils.copyFile(inputFile, outputFile);
-                ChannelWriter.put(outputFile, channel, extraInfo);
+                ChannelWriter.put(outputFile, realChannel, extraInfo);
             } catch (IOException | SignatureNotFoundException e) {
                 e.printStackTrace();
             }

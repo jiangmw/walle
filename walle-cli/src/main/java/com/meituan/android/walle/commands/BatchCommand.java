@@ -15,6 +15,7 @@ import org.apache.commons.io.IOUtils;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -46,35 +47,39 @@ public class BatchCommand implements IWalleCommand {
             outputDir = inputFile.getParentFile();
         }
 
+        List<String> lines = new ArrayList<>();
         if (channelList != null) {
-            for (String channel : channelList) {
-                generateChannelApk(inputFile, outputDir, channel);
-            }
+            lines.addAll(channelList);
         }
 
         if (channelFile != null) {
             try {
-                final List<String> lines = IOUtils.readLines(new FileInputStream(channelFile), "UTF-8");
-                for (String line : lines) {
-                    final String lineTrim = line.trim();
-                    if (lineTrim.length() == 0 || lineTrim.startsWith("#")) {
-                        continue;
-                    }
-                    final String channel = line.split("#")[0].trim();
-                    if (channel.length() != 0) {
-                        generateChannelApk(inputFile, outputDir, channel);
-                    }
-                }
+                lines.addAll(IOUtils.readLines(new FileInputStream(channelFile), "UTF-8"));
             } catch (IOException e) {
                 e.printStackTrace();
             }
         }
+
+        if (lines != null) {
+            for (String line : lines) {
+                final String lineTrim = line.trim();
+                if (lineTrim.length() == 0 || lineTrim.startsWith("#")) {
+                    continue;
+                }
+                String[] split = line.split("#");
+                final String channel = split[0].trim();
+                final String alias = split.length > 1 ? split[1].trim() : null;
+                if (channel.length() != 0) {
+                    generateChannelApk(inputFile, outputDir, channel, alias);
+                }
+            }
+        }
     }
 
-    private void generateChannelApk(final File inputFile, final File outputDir, final String channel) {
+    private void generateChannelApk(final File inputFile, final File outputDir, final String channel, final String alias) {
         final String name = FilenameUtils.getBaseName(inputFile.getName());
         final String extension = FilenameUtils.getExtension(inputFile.getName());
-        final String newName = name + "_" + channel + "." + extension;
+        final String newName = name + (alias == null || alias.isEmpty() ? "" : "_" + alias) + "_" + channel + "." + extension;
         final File channelApk = new File(outputDir, newName);
         try {
             FileUtils.copyFile(inputFile, channelApk);
